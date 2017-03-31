@@ -261,6 +261,7 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		TrackerDataImpl * zsData = dynamic_cast< TrackerDataImpl * > ( _zsInputDataCollectionVec->getElementAt( idetector ) );
 		SparsePixelType   type   = static_cast<SparsePixelType> ( static_cast<int> (cellDecoder( zsData )["sparsePixelType"]) );
 		int sensorID             = static_cast<int > ( cellDecoder( zsData )["sensorID"] );
+		std::cout<<"ID: "<<sensorID<<std::endl;
 
 		//get alle the plane relevant geo information, that is the plane name and the plane pix geometry
 		std::string planePath = geo::gGeometry().getPlanePath( sensorID );
@@ -281,7 +282,12 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		//now that we know which is the sensorID, we can ask which are the minX, minY, maxX and maxY.
 		int minX, minY, maxX, maxY;
 		minX = minY = maxX = maxY = 0;
+		float sizeX, sizeY, sizeZ;
+		sizeX=sizeY=sizeZ=0;
+		 
+		geoDescr->getSensitiveSize(sizeX, sizeY, sizeZ);
 		geoDescr->getPixelIndexRange( minX, maxX, minY, maxY );
+		//std::cout<<" minX: "<< minX<<" maxX: " <<maxX<<" minY: " <<minY<<" maxY: " <<maxY <<std::endl;
 
 		// now prepare the EUTelescope interface to sparsified data.  
 		auto  sparseData = Utility::getSparseData(zsData, type);
@@ -291,6 +297,7 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		int hitPixelsInEvent = sparseData->size();
 		std::vector<EUTelGeometricPixel> hitPixelVec;
 		EUTelGenericSparsePixel* pixel = NULL;
+		
 			
 		//This for-loop loads all the hits of the given event and detector plane and stores them as GeometricPixels
 		for(int i = 0; i < hitPixelsInEvent; ++i )
@@ -304,25 +311,98 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		    
 		    //Then navigate to this pixel with the TGeo manager
 		    geo::gGeometry()._geoManager->cd( (planePath+pixelPath).c_str() );
+		    //std::cout<<planePath+pixelPath<<std::endl;
+		    //planePath=/volume_World_1/volume_SensorID:0_1
 		    
 		    //get the imbedding box
 		    TGeoShape* currentShape =  geo::gGeometry()._geoManager->GetCurrentVolume()->GetShape();
+		    //std::cout<<"This is the currentShape "<<*currentShape <<std::endl;
 		    TGeoBBox* bbox = dynamic_cast<TGeoBBox*>( currentShape );
 		    //store the dimensions of this box in the GeometricPixel
+		    
 		    hitPixel.setBoundaryX( bbox->GetDX() );
 		    hitPixel.setBoundaryY( bbox->GetDY() );
-		    
+		
 		    //Get how deep the node description goes (this is how often we have to transform to get coordinates in the local plane coordinate system)
 		    std::vector<std::string> split = Utility::stringSplit( planePath+pixelPath , "/", false);
+		    std::cout<<"split: "<< planePath+pixelPath<<std::endl;
+		    
+		    std::string Row_in,Col_in;
+		    Double_t X_mid,Y_mid;
+		    int int_Row_in,int_Col_in;
+		    
+		    /*if(sensorID==0){
+		      Col_in=split[3].substr(14);
+		      Row_in=split[3][12];
+		      int_Row_in=atoi(Row_in.c_str())-1;
+		      int_Col_in=atoi(Col_in.c_str())-1;
+		      X_mid=hitPixel.getBoundaryX()*2*int_Col_in-sizeX/2+hitPixel.getBoundaryX();
+		      Y_mid= hitPixel.getBoundaryY()*2*int_Row_in-sizeY/2+hitPixel.getBoundaryY();
+		      }*/
+		    
+		    if(sensorID==0){
+		      Double_t RCentreOfPixel,thetaPitch,NumStrips,stereo,phi_i,b,c,r,R;
+		      Col_in=split[3].substr(14);
+		      Row_in=split[3][12];
+		      int_Row_in=atoi(Row_in.c_str())-1;
+		      int_Col_in=atoi(Col_in.c_str())-1;
+		      if(int_Row_in==0){
+			RCentreOfPixel=393.9905;
+			thetaPitch=0.0001932745;
+			NumStrips=1026;
+		      }
+		      if(int_Row_in==1){
+			RCentreOfPixel=415.4715;
+			thetaPitch=0.0001932745;
+			NumStrips=1026;
+		      }
+		      if(int_Row_in==2){
+			RCentreOfPixel=441.952;
+			thetaPitch=0.0001718368;
+			NumStrips=1154;
+		      }
+		      if(int_Row_in==3){
+			RCentreOfPixel=472.4325;
+			thetaPitch=0.0001718368;
+			NumStrips=1154;
+		      }
+		      stereo=0.02,R=438.614;
+		      phi_i=(int_Col_in-NumStrips/2+0.5)*thetaPitch;
+		      b=-2*(2*R*sin(stereo/2))*sin(stereo/2+phi_i);
+		      c=pow((2*R*sin(stereo/2)),2)-pow(RCentreOfPixel,2);
+		      r=0.5*(-b+sqrt(pow(b,2)-4*c));
+		      Y_mid=r*cos(phi_i+stereo) - R*cos(stereo);
+		      X_mid=r*sin(phi_i+stereo) - R*sin(stereo);
+		    }
+		    
+		    else{
+		      Row_in=split[4].substr(10);
+		      Col_in=split[3].substr(8);
+		      int_Row_in=atoi(Row_in.c_str())-1;
+		      int_Col_in=atoi(Col_in.c_str())-1;
+		      X_mid=hitPixel.getBoundaryX()*2*int_Col_in-sizeX/2+hitPixel.getBoundaryX();
+		      Y_mid= hitPixel.getBoundaryY()*2*int_Row_in-sizeY/2+hitPixel.getBoundaryY();
+		    }
+		    if(sensorID==0 || sensorID==1 || sensorID==2){
+		      std::cout<<sensorID << ": getPixName input: ("<< hitPixel.getXCoord()<< "," << hitPixel.getYCoord()<<")"
+			       <<" row "<<int_Row_in <<" col "<<int_Col_in
+			       <<std::endl;}
+
+
 		    
 		    //Three recursions for the telescope/plane
 		    int recursionDepth = split.size() - 3;
-		    
+		    //if(sensorID==0 || sensorID==1){
+		    //  std::cout<<sensorID<<": recursionDepth: "<<planePath+pixelPath<<"   "<< recursionDepth <<std::endl;}
 		    //The do the transformation
 		    Double_t origin_pt[3] = {0,0,0};
 		    Double_t transformed1_pt[3];
 		    Double_t transformed2_pt[3];
 		    gGeoManager->GetCurrentNode()->LocalToMaster(origin_pt, transformed1_pt);
+
+		    //if (pixelPath[10]=='m' and sensorID==0){std::cout<<sensorID<<": "
+			//<<"delta: "<< bbox->GetDX() <<", "<<bbox->GetDY()
+		    //						     <<"  pos1: "<<transformed1_pt[0] << ", "<<transformed1_pt[1] <<std::endl;}
 		    
 		    transformed2_pt[0] = transformed1_pt[0];
 		    transformed2_pt[1] = transformed1_pt[1];
@@ -336,13 +416,22 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 			transformed1_pt[1] = transformed2_pt[1];
 			transformed1_pt[2] = transformed2_pt[2];
 		      }
+		    if (sensorID==0 || sensorID==1 || sensorID==2){
+		      std::cout<<sensorID<<": delta: "<< bbox->GetDX() <<", "<<bbox->GetDY()
+			       <<" pos2: "<<transformed2_pt[0] << ", "<<transformed2_pt[1] 
+			       <<std::endl;
+		      std::cout<<sensorID<<": X_calc: "<< X_mid <<" Y_calc: "<< Y_mid
+			       <<std::endl;
+		    }
 		    
+		    //This was changed to take in the positions based on the pixGeo mapping
 		    //store all the position information in the GeometricPixel
-		    hitPixel.setPosX( transformed2_pt[0] );
-		    hitPixel.setPosY( transformed2_pt[1] );
+		    hitPixel.setPosX( X_mid);//transformed2_pt[0] );
+		    hitPixel.setPosY( Y_mid);//transformed2_pt[1] );
 		    //and push this pixel back
 		    hitPixelVec.push_back( hitPixel );
-		  }		
+		  }
+		
 		
 		std::vector<EUTelGeometricPixel> newlyAdded;
 		//We now cluster those hits together
@@ -351,7 +440,7 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		    // prepare a TrackerData to store the cluster candidate
 		    std::unique_ptr<TrackerDataImpl> zsCluster = std::make_unique<TrackerDataImpl>();
 		    // prepare a reimplementation of sparsified cluster
-		    std::unique_ptr<EUTelGenericSparseClusterImpl<EUTelGeometricPixel>> sparseCluster = std::make_unique<EUTelGenericSparseClusterImpl<EUTelGeometricPixel>>(zsCluster.get());
+		    std::unique_ptr<EUTelGenericSparseClusterImpl<EUTelGeometricPixel> > sparseCluster = std::make_unique<EUTelGenericSparseClusterImpl<EUTelGeometricPixel> >(zsCluster.get());
 		    
 		    //First we need to take any pixel, so let's take the first one
 		    //Add it to the cluster as well as the newly added pixels
@@ -450,10 +539,11 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		      }
 		  } //loop over all found clusters
 		
+		
 		delete pixel;
 		
 	} // this is the end of the loop over all ZS detectors
-	
+     
 	// if the sparseClusterCollectionVec isn't empty add it to the
 	// current event. The pulse collection will be added afterwards
 	if ( ! isDummyAlreadyExisting ) 
@@ -539,8 +629,8 @@ void EUTelProcessorGeometricClustering::fillHistos (LCEvent * evt)
 		    {
 				if(_ExcludedPlanes[i] == detectorID)
 		        {
-					foundexcludedsensor = true;
-					break;
+			  foundexcludedsensor = true;
+					  break;
 		        }
 		    }
 
@@ -552,11 +642,17 @@ void EUTelProcessorGeometricClustering::fillHistos (LCEvent * evt)
 			float geoPosX, geoPosY, geoSizeX, geoSizeY;
 			cluster->getClusterGeomInfo(geoPosX, geoPosY, geoSizeX, geoSizeY);
 
-			//Do all the plots
-			(dynamic_cast<AIDA::IHistogram1D*> (_clusterSizeXHistos[detectorID]))->fill(xSize);
-			(dynamic_cast<AIDA::IHistogram1D*> (_clusterSizeYHistos[detectorID]))->fill(ySize);
+			//Do all the plots  changed clusterSize to take geo variables as opposed to normal variables. MapGeom line was originally geo however
+			(dynamic_cast<AIDA::IHistogram1D*> (_clusterSizeXHistos[detectorID]))->fill(geoSizeX);
+			//(dynamic_cast<AIDA::IHistogram1D*> (_clusterSizeXHistos[detectorID]))->fill(xSize);
+			(dynamic_cast<AIDA::IHistogram1D*> (_clusterSizeYHistos[detectorID]))->fill(geoSizeY);
+			//(dynamic_cast<AIDA::IHistogram1D*> (_clusterSizeYHistos[detectorID]))->fill(ySize);
+			//(dynamic_cast<AIDA::IHistogram2D*> (_hitMapHistos[detectorID]))->fill(static_cast<double >(geoPosX), static_cast<double >(geoPosY), 1.);
 			(dynamic_cast<AIDA::IHistogram2D*> (_hitMapHistos[detectorID]))->fill(static_cast<double >(xPos), static_cast<double >(yPos), 1.);
 			(dynamic_cast<AIDA::IHistogram2D*> (_hitMapGeomHistos[detectorID]))->fill(geoPosX, geoPosY, 1.);
+			if (detectorID==0 || detectorID==1 || detectorID==2){
+			  std::cout <<detectorID<<": pos "<<xPos <<", "<<yPos <<"; "<<xSize <<", "<<ySize <<std::endl;
+			  std::cout <<detectorID<<": geoPos "<<geoPosX <<", "<<geoPosY <<"; "<<geoSizeX <<", "<<geoSizeY <<std::endl;}
 			(dynamic_cast<AIDA::IHistogram1D*> (_clusterSizeTotalHistos[detectorID]))->fill( static_cast<int>(cluster->size()) );
 			(dynamic_cast<AIDA::IHistogram1D*> (_clusterSignalHistos[detectorID]))->fill(cluster->getTotalCharge());
 
@@ -723,28 +819,29 @@ void EUTelProcessorGeometricClustering::bookHistos() {
 
 
 
-		tempHistoName = _hitMapHistoName + "_d" + to_string( sensorID );
+		tempHistoName = _hitMapHistoName + "_d" + to_string( sensorID );//CHANGED
 		int     xBin = maxX - minX + 1;
 		double  xMin = static_cast<double >( minX ) - 0.5 ;
 		double  xMax = static_cast<double >( maxX ) + 0.5;
-		int     yBin = maxY - minY + 1;
-		double  yMin = static_cast<double >( minY ) - 0.5;
-		double  yMax = static_cast<double >( maxY ) + 0.5;
+		int     yBin = 576;//maxY - minY + 1;
+		double  yMin = -0.5;//static_cast<double >( minY ) - 0.5;
+		double  yMax = 5.5;//575.5;//static_cast<double >( maxY ) + 0.5;
 		AIDA::IHistogram2D * hitMapHisto = AIDAProcessor::histogramFactory(this)->createHistogram2D( (basePath + tempHistoName).c_str(), xBin, xMin, xMax,yBin, yMin, yMax);
 		_hitMapHistos.insert(std::make_pair(sensorID, hitMapHisto));
 		hitMapHisto->setTitle("Pixel Index Hit Map;X Index [#];Y Index [#];Count [#]");
 
 
-		float binX = (maxX-minX+0)*60/sizeX;
-		float binY = (maxY-minY+0)*40/sizeY;
+		float binX = 2000;//(maxX-minX+0)*60/sizeX;
+		float binY = 2000;//(maxY-minY+0)*40/sizeY;
+		//std::cout<<" minX: "<< minX<<" maxX: " <<maxX<<" minY: " <<minY<<" maxY: " <<maxY <<" sizeX: " <<sizeX <<" sizeY: " <<sizeY <<std::endl;
 
 		tempHistoName = _hitMapGeomHistoName + "_d" + to_string( sensorID );
 		int     xGeomBin = ceil(binX);
 		double  xGeomMin = -30.25;
-		double  xGeomMax =  29.75;
+		double  xGeomMax = 29.75;
 		int     yGeomBin = ceil(binY);
-		double  yGeomMin = -20.25;
-		double  yGeomMax = 19.75;
+		double  yGeomMin = -50;//-20.25;
+		double  yGeomMax = 50;//19.75;
 		AIDA::IHistogram2D * hitMapGeomHisto = AIDAProcessor::histogramFactory(this)->createHistogram2D( (basePath + tempHistoName).c_str(), xGeomBin, xGeomMin, xGeomMax, yGeomBin, yGeomMin, yGeomMax);
 		_hitMapGeomHistos.insert(std::make_pair(sensorID, hitMapGeomHisto));
 		hitMapGeomHisto->setTitle("Geometric Cluster Hit Map;X-Position [mm];Y-Position [mm];Count [#]");
