@@ -1,14 +1,12 @@
-#ifndef ITKR0_H
-#define	ITKR0_H
+#ifndef MIMOSAR02_H
+#define	MIMOSAR02_H
 
-  /** @class ITkR0
+  /** @class Mimosa26
 	* This class is the implementation of  @class EUTelGenericPixGeoDescr
-	* for the ITkR0 which is the ATLAS ITk strip end-cap sensor closest to
-	* the beam pipe.
-	* The geoemtry is as following: Four rows of strips, each a different length.
-	* The two inner rows have 1026 strips while the outer two rows have 1054 strips.
-	* The strips are defined as annuli and focus on a point not at the origin
-	* while they are arranged in a curve centered on the origin, due to the stereo angle. 
+	* for the Mimosa26 which is the standard telescope reference plane of
+	* the DESY pixel telescope.
+	* The geoemtry is as following: the 21.2 x 10.6 mm**2 are is divided
+	* into a 1151 x 575 pixel matrix. All pixels are of the same dimension. 
     */
 
 //STL
@@ -26,11 +24,11 @@
 namespace eutelescope {
 namespace geo {
 
-class ITkR0 : public EUTelGenericPixGeoDescr {
+class MimosaR02 : public EUTelGenericPixGeoDescr {
 	
 	public:
-		ITkR0();
-		~ITkR0();
+		MimosaR02();
+		~MimosaR02();
 
 		void createRootDescr(char const *);
 		std::string getPixName(int, int);
@@ -49,10 +47,10 @@ class ITkR0 : public EUTelGenericPixGeoDescr {
 		Int_t n_phi1=1026,n_phi2=1154;
 		Double_t dphi1=0.0001932745,dphi2=0.0001718368;
 		Double_t phi_i,b,r,c,x1,x,y1,y,gradient,theta;
-		//corners of sensor
-		Double_t Ax=-39.565,Ay=-56.608,Bx=-47.856,By=47.920,Cx=49.943,Cy=47.711,Dx=37.479,Dy=-56.398;
+		//corners of sensor if strips are in y direction ie. rotated 90 degrees
+		Double_t Ax=39.565,Ay=-56.608,Bx=47.856,By=47.920,Cx=-49.943,Cy=47.711,Dx=-37.479,Dy=-56.398;
 		//focus point of strips
-		Double_t Fx=-8.771695,Fy=0.0877198;
+		Double_t Fx=8.77169519303,Fy=0.0877198759479;
 		
 };
 
@@ -64,4 +62,4 @@ extern "C"
 } //namespace geo
 } //namespace eutelescope
 
-#endif	//ITKR0_H
+#endif	//MIMOSAR02_H

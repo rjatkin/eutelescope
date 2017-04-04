@@ -285,7 +285,7 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		float sizeX, sizeY, sizeZ;
 		sizeX=sizeY=sizeZ=0;
 		 
-		geoDescr->getSensitiveSize(sizeX, sizeY, sizeZ);
+		geoDescr->getSensitiveSize(sizeX, sizeY, sizeZ);//NEEDS TO STILL BE EDITED FOR R0 SENSOR
 		geoDescr->getPixelIndexRange( minX, maxX, minY, maxY );
 		//std::cout<<" minX: "<< minX<<" maxX: " <<maxX<<" minY: " <<minY<<" maxY: " <<maxY <<std::endl;
 
@@ -331,16 +331,7 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		    Double_t X_mid,Y_mid;
 		    int int_Row_in,int_Col_in;
 		    
-		    /*if(sensorID==0){
-		      Col_in=split[3].substr(14);
-		      Row_in=split[3][12];
-		      int_Row_in=atoi(Row_in.c_str())-1;
-		      int_Col_in=atoi(Col_in.c_str())-1;
-		      X_mid=hitPixel.getBoundaryX()*2*int_Col_in-sizeX/2+hitPixel.getBoundaryX();
-		      Y_mid= hitPixel.getBoundaryY()*2*int_Row_in-sizeY/2+hitPixel.getBoundaryY();
-		      }*/
-		    
-		    if(sensorID==0){
+		    if(sensorID==0){//This is for the R0 sensor as I placed the R0 sensor as the first plane in the EUTEL telescope in AllPix
 		      Double_t RCentreOfPixel,thetaPitch,NumStrips,stereo,phi_i,b,c,r,R;
 		      Col_in=split[3].substr(14);
 		      Row_in=split[3][12];
@@ -372,7 +363,7 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		      c=pow((2*R*sin(stereo/2)),2)-pow(RCentreOfPixel,2);
 		      r=0.5*(-b+sqrt(pow(b,2)-4*c));
 		      Y_mid=r*cos(phi_i+stereo) - R*cos(stereo);
-		      X_mid=r*sin(phi_i+stereo) - R*sin(stereo);
+		      X_mid=-r*sin(phi_i+stereo) + R*sin(stereo);
 		    }
 		    
 		    else{
@@ -426,8 +417,8 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 		    
 		    //This was changed to take in the positions based on the pixGeo mapping
 		    //store all the position information in the GeometricPixel
-		    hitPixel.setPosX( X_mid);//transformed2_pt[0] );
-		    hitPixel.setPosY( Y_mid);//transformed2_pt[1] );
+		    hitPixel.setPosX( X_mid);//transformed2_pt[0]
+		    hitPixel.setPosY( Y_mid);//transformed2_pt[1]
 		    //and push this pixel back
 		    hitPixelVec.push_back( hitPixel );
 		  }
@@ -479,8 +470,9 @@ void EUTelProcessorGeometricClustering::geometricClustering(LCEvent * evt, LCCol
 			    cutX = (cx1+cx2)*1.01; //this additional 1% is accounting for precision
 			    cutY = (cy1+cy2)*1.01; //uncertainty with the geo framework
 			    
-			    //if they pass the spatial and temporal cuts, we add them	
-			    if(	(dX*dX <= cutX*cutX) && (dY*dY <= cutY*cutY) && (dT*dT <= _cutT*_cutT) )
+			    //if they pass the spatial and temporal cuts, we add them
+			    //ie. if dx^2<=(pitchX*1.01)^2
+			    if(	(dX*dX <= cutX*cutX) && (dY*dY <= cutY*cutY) && (dT*dT <= _cutT*_cutT) )//NEEDS TO BE EDITED FOR R0 SENSOR
 			      {
 				//add them to the cluster as well as to the newly added ones
 				newlyAdded.push_back( *hitVec );
@@ -721,7 +713,7 @@ void EUTelProcessorGeometricClustering::bookHistos() {
 		float sizeX, sizeY, sizeZ;
 		sizeX=sizeY=sizeZ=0;
 		 
-		geoDescr->getPixelIndexRange( minX, maxX, minY, maxY );
+		geoDescr->getPixelIndexRange( minX, maxX, minY, maxY );//NEEDS TO BE EDITED FOR R0 SENSOR
 		geoDescr->getSensitiveSize(sizeX, sizeY, sizeZ);
 
 		basePath = "detector_" + to_string( sensorID );
